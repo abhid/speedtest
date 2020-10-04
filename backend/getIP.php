@@ -27,6 +27,7 @@ if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
 
 $ip = preg_replace("/^::ffff:/", "", $ip);
 
+/*
 if ($ip == "::1") { // ::1/128 is the only localhost ipv6 address. there are no others, no need to strpos this
     echo json_encode(['processedString' => $ip . " - localhost IPv6 access", 'rawIspInfo' => ""]);
     die();
@@ -55,6 +56,7 @@ if (strpos($ip, '169.254.') === 0) { // IPv4 link-local
     echo json_encode(['processedString' => $ip . " - link-local IPv4 access", 'rawIspInfo' => ""]);
     die();
 }
+*/
 
 /**
  * Optimized algorithm from http://www.codexworld.com
@@ -139,7 +141,7 @@ if (isset($_GET["isp"])) {
                             $isp .= " (" . $dist . " km)";
                         }
                     } catch (Exception $e) {
-                        
+
                     }
                 }
             }

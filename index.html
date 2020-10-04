@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<meta charset="UTF-8" />
+
+<head>
+  <title>radarr &middot; Connectivity troubleshooting from optbit</title>
+  <link rel="shortcut icon" href="favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+<script type="text/javascript" src="speedtest.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+
+<body class="p-2">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <samp class="h5">radarr &middot; Connection Info</samp>
+      </div>
+      <div class="col-md-8">
+        <table class="table table-sm table-hover mt-2">
+          <tr>
+            <td style="min-width: 150px;">External IP</td>
+            <td id="ip"></td>
+          </tr>
+          <tr>
+            <td>Internal IP</td>
+            <td id="internal_ip"></td>
+          </tr>
+          <tr>
+            <td>User Agent</td>
+            <td id="ua"></td>
+          </tr>
+          <tr>
+            <td>Latency</td>
+            <td id="ping"></td>
+          </tr>
+          <tr>
+            <td>Jitter</td>
+            <td id="jitter"></td>
+          </tr>
+          <tr>
+            <td>Download</td>
+            <td id="download"></td>
+          </tr>
+          <tr>
+            <td>Upload</td>
+            <td id="upload"></td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-md-4">
+        <div id="mapholder">
+
+        </div>
+      </div>
+      <div class="col-md-8">
+        <samp class="h5">MTR Result</samp>
+        <pre id="mtr" class="mt-2"></pre>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="text/javascript">
+    var s = new Speedtest();
+    s.onupdate = function(data) { // when status is received, put the values in the appropriate fields
+      document.getElementById('download').textContent = data.dlStatus + ' Mbit/s'
+      document.getElementById('upload').textContent = data.ulStatus + ' Mbit/s'
+      document.getElementById('ping').textContent = data.pingStatus + ' ms'
+      document.getElementById('jitter').textContent = data.jitterStatus + ' ms'
+      document.getElementById('ip').textContent = data.clientIp
+    }
+    s.start(); // start the speedtest with default settings
+
+    // Get local IP
+    window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection; //compatibility for firefox and chrome
+    var pc = new RTCPeerConnection({
+        iceServers: []
+      }),
+      noop = function() {};
+    pc.createDataChannel("");
+    pc.createOffer(pc.setLocalDescription.bind(pc), noop);
+    pc.onicecandidate = function(ice) {
+      if (!ice || !ice.candidate || !ice.candidate.candidate) return;
+      var internal_ip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
+      document.getElementById('internal_ip').textContent = internal_ip;
+      pc.onicecandidate = noop;
+    };
+
+    // Get UA
+    $.get("/backend/client_info.php", function(data) {
+      document.getElementById('ua').textContent = data["ua"];
+    });
+
+    // Get MTR to external IP
+    $.get("/backend/mtr.php", function(data) {
+      $('#mtr').text(data["mtr"]);
+    });
+
+    // Get location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(showPosition);
+    } else {
+      x.innerHTML = "Geolocation is not supported by this browser.";
+    }
+
+    function showPosition(position) {
+      var latlon = position.coords.latitude + "," + position.coords.longitude;
+      var img_url = "https://maps.googleapis.com/maps/api/staticmap?center="+latlon+"&markers="+latlon+"&zoom=12&size=400x300&sensor=false&key=AIzaSyBVFVBZnaCBWFaaaCuD9Pt7MASPFmqTXSk";
+      document.getElementById("mapholder").innerHTML = "<img src='"+img_url+"'>";
+    }
+  </script>
+</body>
+</html>
